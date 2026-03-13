@@ -89,11 +89,11 @@
 
         // Avisa o navegador o que fazer quando você clica em "Salvar"
         document.getElementById('formModulo').onsubmit = function(event) {
-            enviarParaOJava(event, 'formModulo', 'http://localhost:7070/cadastrar-modulo');
+            enviarParaOJava(event, 'formModulo', 'https://api-audiobuilder.onrender.com/cadastrar-modulo');
         };
 
         document.getElementById('formFalante').onsubmit = function(event) {
-            enviarParaOJava(event, 'formFalante', 'http://localhost:7070/cadastrar-falante');
+            enviarParaOJava(event, 'formFalante', 'https://api-audiobuilder.onrender.com/cadastrar-falante');
         };
     </script>
 </body>

@@ -85,7 +85,7 @@
         window.onload = function() { carregarEstoque(); };
 
         function carregarEstoque() {
-            fetch('http://localhost:7070/produtos')
+            fetch('https://api-audiobuilder.onrender.com/produtos')
             .then(resposta => resposta.json())
             .then(produtos => {
                 const vitrine = document.getElementById('vitrine');
@@ -169,7 +169,7 @@
             document.getElementById('texto-relatorio').style.color = '#ff9800'; 
             document.getElementById('texto-relatorio').style.borderColor = '#ff9800';
 
-            fetch('http://localhost:7070/calcular', {
+            fetch('https://api-audiobuilder.onrender.com/calcular', {
                 method: 'POST',
                 body: dadosParaEnvio
             })
