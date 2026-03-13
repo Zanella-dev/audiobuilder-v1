@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AudioBuilder - Marketplace Dark</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; margin: 0; padding: 0; color: #e0e0e0; }
+        header { background-color: #1f1f1f; color: #fff; padding: 25px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.3); border-bottom: 2px solid #333; }
+        header h1 { margin: 0; font-size: 28px; letter-spacing: 1px; color: #e94560; }
+        
+        .container { display: flex; max-width: 1300px; margin: 30px auto; gap: 30px; padding: 0 20px; }
+        
+        /* Área da Vitrine */
+        .marketplace-area { flex: 2; }
+        .barra-pesquisa { width: 100%; padding: 15px; border: 1px solid #444; border-radius: 8px; font-size: 16px; margin-bottom: 20px; box-sizing: border-box; background-color: #2c2c2c; color: #fff; }
+        
+        .grid-produtos { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+        .produto-card { background: #1f1f1f; border: 1px solid #333; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); text-align: center; transition: all 0.2s; }
+        .produto-card:hover { transform: translateY(-5px); border-color: #e94560; }
+        .produto-card h3 { font-size: 16px; margin: 10px 0; color: #e0e0e0; }
+        .produto-card p { font-size: 13px; color: #aaa; margin-bottom: 15px; }
+        .btn-add { background-color: #333; color: #e94560; border: 2px solid #333; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; transition: all 0.3s; }
+        .btn-add:hover { background-color: #e94560; color: white; border-color: #e94560; }
+
+        /* Área do Carrinho */
+        .painel-lateral { flex: 1; display: flex; flex-direction: column; gap: 20px; }
+        .carrinho-box, .resultado-box { background: #1f1f1f; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); border: 1px solid #333; }
+        .carrinho-box { border-top: 4px solid #e94560; }
+        .carrinho-box h2 { color: #fff; margin-top: 0; }
+        
+        #lista-carrinho { list-style-type: none; padding: 0; margin: 0; }
+        
+        /* Novo estilo para os itens do carrinho e lixeira */
+        .item-carrinho { background: #2c2c2c; margin-bottom: 8px; padding: 12px; border-left: 4px solid #e94560; border-radius: 4px; font-size: 14px; color: #e0e0e0; display: flex; justify-content: space-between; align-items: center; }
+        .btn-lixeira { background: transparent; border: none; color: #e74c3c; cursor: pointer; font-size: 16px; padding: 0 5px; transition: 0.2s; }
+        .btn-lixeira:hover { transform: scale(1.2); }
+        
+        .btn-calcular { background-color: #e94560; color: white; border: none; width: 100%; margin-top: 20px; padding: 15px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: background 0.3s; }
+        .btn-calcular:hover { background-color: #d13d56; }
+        
+        /* Botão de limpar projeto */
+        .btn-limpar { background-color: #444; color: white; border: none; width: 100%; margin-top: 10px; padding: 10px; font-size: 14px; border-radius: 8px; cursor: pointer; transition: background 0.3s; }
+        .btn-limpar:hover { background-color: #666; }
+
+        .resultado-box { border-top: 4px solid #27ae60; display: none; }
+        .resultado-box h2 { color: #27ae60; margin-top: 0; }
+        pre { white-space: pre-wrap; font-family: inherit; font-size: 14px; line-height: 1.6; color: #27ae60; background: #000; padding: 15px; border-radius: 5px; border: 1px solid #1a5e33;}
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🛒 AudioBuilder - O Seu Marketplace de Som</h1>
+        <p>Pesquise, adicione ao carrinho e valide a engenharia na hora!</p>
+    </header>
+
+    <div class="container">
+        <div class="marketplace-area">
+            <input type="text" class="barra-pesquisa" placeholder="🔍 Pesquisar módulos, alto-falantes, marcas...">
+            <div class="grid-produtos" id="vitrine">
+                <p>Carregando estoque...</p>
+            </div>
+        </div>
+
+        <div class="painel-lateral">
+            <div class="carrinho-box">
+                <h2>Seu Projeto</h2>
+                <p id="carrinho-vazio" style="color: #888; font-size: 14px;">Carrinho vazio. Navegue pelo marketplace!</p>
+                <ul id="lista-carrinho"></ul>
+                
+                <button class="btn-calcular">⚙️ Processar Engenharia</button>
+                <button class="btn-limpar" onclick="limparProjeto()">🗑️ Limpar Projeto</button>
+            </div>
+
+            <div class="resultado-box" id="painel-resultado">
+                <h2>📊 Laudo Técnico</h2>
+                <pre id="texto-relatorio">Calculando...</pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. CARREGAR ESTOQUE
+        window.onload = function() { carregarEstoque(); };
+
+        function carregarEstoque() {
+            fetch('http://localhost:7070/produtos')
+            .then(resposta => resposta.json())
+            .then(produtos => {
+                const vitrine = document.getElementById('vitrine');
+                vitrine.innerHTML = ''; 
+
+                produtos.forEach(produto => {
+                    let tipoImp = produto.tipo === 'Modulo' ? 'Imp. Mínima' : 'Imp. Nominal';
+                    
+                    const card = document.createElement('div');
+                    card.className = 'produto-card';
+                    card.innerHTML = `
+                        <h3>${produto.nome}</h3>
+                        <p>Potência: ${produto.potencia}W RMS<br>${tipoImp}: ${produto.impedancia} Ohms</p>
+                        <button class="btn-add" onclick="adicionarItem('${produto.nome}')">+ Carrinho</button>
+                    `;
+                    vitrine.appendChild(card); 
+                });
+            })
+            .catch(erro => {
+                document.getElementById('vitrine').innerHTML = '<p style="color:red;">Erro ao carregar os produtos do servidor.</p>';
+            });
+        }
+
+        // 2. LÓGICA DO CARRINHO
+        let carrinhoDeCompras = [];
+
+        function adicionarItem(nomeDoProduto) {
+            carrinhoDeCompras.push(nomeDoProduto);
+            atualizarTela();
+        }
+
+        // NOVA FUNÇÃO: Remover apenas 1 item específico
+        function removerItem(posicaoNoArray) {
+            carrinhoDeCompras.splice(posicaoNoArray, 1); // Remove 1 item daquela posição
+            atualizarTela();
+        }
+
+        // NOVA FUNÇÃO: Limpar tudo
+        function limparProjeto() {
+            carrinhoDeCompras = [];
+            document.getElementById('painel-resultado').style.display = 'none'; // Esconde o laudo antigo
+            atualizarTela();
+        }
+
+        function atualizarTela() {
+            let listaHtml = document.getElementById('lista-carrinho');
+            let avisoVazio = document.getElementById('carrinho-vazio');
+            listaHtml.innerHTML = '';
+
+            if (carrinhoDeCompras.length > 0) {
+                avisoVazio.style.display = 'none';
+            } else {
+                avisoVazio.style.display = 'block';
+            }
+
+            for (let i = 0; i < carrinhoDeCompras.length; i++) {
+                let novoItemHtml = document.createElement('li');
+                novoItemHtml.className = 'item-carrinho';
+                
+                // Agora o item tem o nome de um lado, e o botão de lixeira do outro!
+                novoItemHtml.innerHTML = `
+                    <span>${carrinhoDeCompras[i]}</span>
+                    <button class="btn-lixeira" onclick="removerItem(${i})" title="Remover item">✖</button>
+                `;
+                
+                listaHtml.appendChild(novoItemHtml);
+            }
+        }
+
+        // 3. ENVIAR PARA O JAVA
+        document.querySelector('.btn-calcular').onclick = function() {
+            if (carrinhoDeCompras.length === 0) {
+                alert("Adicione algum produto no carrinho primeiro!");
+                return; 
+            }
+
+            let dadosParaEnvio = JSON.stringify(carrinhoDeCompras);
+            
+            document.getElementById('painel-resultado').style.display = 'block';
+            document.getElementById('texto-relatorio').innerText = "⏳ Conectando aos servidores de engenharia...";
+            document.getElementById('texto-relatorio').style.color = '#ff9800'; 
+            document.getElementById('texto-relatorio').style.borderColor = '#ff9800';
+
+            fetch('http://localhost:7070/calcular', {
+                method: 'POST',
+                body: dadosParaEnvio
+            })
+            .then(resposta => resposta.text())
+            .then(texto_final => {
+                document.getElementById('texto-relatorio').innerText = texto_final; 
+                document.getElementById('texto-relatorio').style.color = '#27ae60'; 
+                document.getElementById('texto-relatorio').style.borderColor = '#1a5e33';
+            })
+            .catch(erro => {
+                document.getElementById('texto-relatorio').innerText = "❌ Erro ao conectar com o servidor Java.";
+                document.getElementById('texto-relatorio').style.color = '#e74c3c'; 
+                document.getElementById('texto-relatorio').style.borderColor = '#5e1a1a';
+            });
+        };
+    </script>
+</body>
+</html>
