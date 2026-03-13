@@ -9,10 +9,11 @@ import io.javalin.Javalin;
 
 public class ServidorWeb {
 
-    // Credenciais do Banco
-    private static final String URL = "jdbc:mysql://localhost:3306/som_automotivo_app";
-    private static final String USER = "root"; 
-    private static final String PASSWORD = "root";
+    // Credenciais do Banco na NUVEM
+    // O Java procura a credencial da nuvem (Render). Se não achar (no seu PC), ele usa o seu banco local de testes!
+    private static final String URL = System.getenv("DB_URL") != null ? System.getenv("DB_URL") : "jdbc:mysql://localhost:3306/som_automotivo_app";
+    private static final String USER = System.getenv("DB_USER") != null ? System.getenv("DB_USER") : "root"; 
+    private static final String PASSWORD = System.getenv("DB_PASS") != null ? System.getenv("DB_PASS") : "root";
 
     public static void main(String[] args) {
         System.out.println("Ligando as luzes do salão...");
