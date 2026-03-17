@@ -46,6 +46,40 @@
         .resultado-box { border-top: 4px solid #27ae60; display: none; }
         .resultado-box h2 { color: #27ae60; margin-top: 0; }
         pre { white-space: pre-wrap; font-family: inherit; font-size: 14px; line-height: 1.6; color: #27ae60; background: #000; padding: 15px; border-radius: 5px; border: 1px solid #1a5e33;}
+
+        /* ========================================= */
+        /* RESPONSIVIDADE: O MODO APLICATIVO (Mobile) */
+        /* ========================================= */
+        @media (max-width: 768px) {
+            .container { 
+                flex-direction: column; /* Quebra a divisão da tela e empilha tudo */
+                margin: 10px auto; 
+                padding: 0 10px; 
+            }
+            
+            .marketplace-area { order: 1; } /* Garante que a vitrine de produtos apareça primeiro */
+            
+            .painel-lateral { order: 2; margin-top: 20px; } /* Joga o carrinho e o laudo técnico pro final da página */
+
+            header { padding: 15px; }
+            header h1 { font-size: 22px; } /* Diminui o título para não quebrar a barra superior */
+
+            .grid-produtos { 
+                grid-template-columns: 1fr; /* Deixa 1 produto grandão por linha para facilitar a visualização */
+            }
+            
+            /* Deixa os botões um pouco mais "gordos" para ficar fácil de clicar na tela touch */
+            .btn-add, .btn-calcular, .btn-limpar { 
+                padding: 15px; 
+                font-size: 16px; 
+            }
+            
+            /* Ajusta a barra de pesquisa para telas menores */
+            .barra-pesquisa {
+                font-size: 14px;
+                padding: 12px;
+            }
+        }
     </style>
 </head>
 <body>
