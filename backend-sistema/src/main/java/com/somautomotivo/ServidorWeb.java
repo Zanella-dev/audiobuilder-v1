@@ -9,8 +9,6 @@ import io.javalin.Javalin;
 
 public class ServidorWeb {
 
-    // Credenciais do Banco na NUVEM
-    // O Java procura a credencial da nuvem (Render). Se não achar (no seu PC), ele usa o seu banco local de testes!
     private static final String URL = System.getenv("DB_URL") != null ? System.getenv("DB_URL") : "jdbc:mysql://localhost:3306/som_automotivo_app";
     private static final String USER = System.getenv("DB_USER") != null ? System.getenv("DB_USER") : "root"; 
     private static final String PASSWORD = System.getenv("DB_PASS") != null ? System.getenv("DB_PASS") : "root";
@@ -36,8 +34,7 @@ public class ServidorWeb {
             StringBuilder jsonEstoque = new StringBuilder();
             jsonEstoque.append("["); 
 
-            try {
-                Connection conexao = DriverManager.getConnection(URL, USER, PASSWORD);
+            try (Connection conexao = DriverManager.getConnection(URL, USER, PASSWORD)) {
 
                 String sqlModulos = "SELECT id, marca, modelo, potencia_rms, impedancia_minima FROM modulos";
                 PreparedStatement cmdModulos = conexao.prepareStatement(sqlModulos);
@@ -66,7 +63,6 @@ public class ServidorWeb {
                     jsonEstoque.append("\"impedancia\":").append(resFalantes.getDouble("impedancia_nominal"));
                     jsonEstoque.append("},");
                 }
-                conexao.close();
 
                 if (jsonEstoque.length() > 1) {
                     jsonEstoque.setLength(jsonEstoque.length() - 1); 
@@ -82,10 +78,9 @@ public class ServidorWeb {
         });
 
         // =========================================================
-        // ROTA 3: CALCULAR O PROJETO (A Mágica)
+        // ROTA 3: CALCULAR O PROJETO
         // =========================================================
         app.post("/calcular", ctx -> {
-            // (Código de cálculo continua intacto)
             String carrinhoCru = ctx.body(); 
             String carrinhoLimpo = carrinhoCru.replace("[", "").replace("]", "").replace("\"", "");
             String[] itensEscolhidos = carrinhoLimpo.split(","); 
@@ -100,8 +95,7 @@ public class ServidorWeb {
             relatorio.append("📋 RELATÓRIO DO SEU PROJETO\n");
             relatorio.append("=====================================\n\n");
 
-            try {
-                Connection conexao = DriverManager.getConnection(URL, USER, PASSWORD);
+            try (Connection conexao = DriverManager.getConnection(URL, USER, PASSWORD)) {
 
                 for (String item : itensEscolhidos) {
                     item = item.trim(); 
@@ -128,7 +122,6 @@ public class ServidorWeb {
                         qtdFalantes++; 
                     }
                 }
-                conexao.close();
 
                 if (temModulo && qtdFalantes > 0) {
                     relatorio.append("[1] CABO DE ENERGIA (BATERIA)\n");
@@ -142,7 +135,7 @@ public class ServidorWeb {
                     relatorio.append("[2] CASAMENTO DE IMPEDÂNCIA (Em Paralelo)\n");
                     double impedanciaFinal = impFalante / qtdFalantes;
                     relatorio.append("-> ").append(qtdFalantes).append(" falante(s) de ").append(impFalante).append(" ohms.\n");
-                    relatorio.append("-> Impedância Final: ").append(impedanciaFinal).append(" ohms.\n");
+                    relatorio.append("-> Impedância Final: ").append(String.format("%.2f", impedanciaFinal)).append(" ohms.\n");
                     
                     if (impedanciaFinal >= impMinimaModulo) {
                         relatorio.append("-> STATUS: ✅ SEGURO! O módulo não vai queimar.\n\n");
@@ -171,19 +164,16 @@ public class ServidorWeb {
         });
 
         // =========================================================
-        // ROTA 4: CADASTRAR NOVO MÓDULO (VIA PAINEL)
+        // ROTA 4: CADASTRAR NOVO MÓDULO
         // =========================================================
         app.post("/cadastrar-modulo", ctx -> {
-            try {
-                // Pega o que você digitou na tela admin.html
+            try (Connection conexao = DriverManager.getConnection(URL, USER, PASSWORD)) {
                 String marca = ctx.formParam("marca");
                 String modelo = ctx.formParam("modelo");
                 int potencia = Integer.parseInt(ctx.formParam("potencia_rms"));
                 double imp = Double.parseDouble(ctx.formParam("impedancia_minima"));
                 int consumo = Integer.parseInt(ctx.formParam("consumo_max_amperes"));
 
-                // Salva no MySQL automaticamente!
-                Connection conexao = DriverManager.getConnection(URL, USER, PASSWORD);
                 String sql = "INSERT INTO modulos (marca, modelo, potencia_rms, impedancia_minima, consumo_max_amperes) VALUES (?, ?, ?, ?, ?)";
                 PreparedStatement cmd = conexao.prepareStatement(sql);
                 cmd.setString(1, marca);
@@ -192,7 +182,6 @@ public class ServidorWeb {
                 cmd.setDouble(4, imp);
                 cmd.setInt(5, consumo);
                 cmd.executeUpdate();
-                conexao.close();
 
                 ctx.result("✅ Sucesso! O Módulo " + marca + " " + modelo + " foi salvo no banco!");
             } catch (Exception e) {
@@ -201,16 +190,15 @@ public class ServidorWeb {
         });
 
         // =========================================================
-        // ROTA 5: CADASTRAR NOVO ALTO-FALANTE (VIA PAINEL)
+        // ROTA 5: CADASTRAR NOVO ALTO-FALANTE
         // =========================================================
         app.post("/cadastrar-falante", ctx -> {
-            try {
+            try (Connection conexao = DriverManager.getConnection(URL, USER, PASSWORD)) {
                 String marca = ctx.formParam("marca");
                 String modelo = ctx.formParam("modelo");
                 int potencia = Integer.parseInt(ctx.formParam("potencia_rms"));
                 double imp = Double.parseDouble(ctx.formParam("impedancia_nominal"));
 
-                Connection conexao = DriverManager.getConnection(URL, USER, PASSWORD);
                 String sql = "INSERT INTO alto_falantes (marca, modelo, potencia_rms, impedancia_nominal) VALUES (?, ?, ?, ?)";
                 PreparedStatement cmd = conexao.prepareStatement(sql);
                 cmd.setString(1, marca);
@@ -218,12 +206,114 @@ public class ServidorWeb {
                 cmd.setInt(3, potencia);
                 cmd.setDouble(4, imp);
                 cmd.executeUpdate();
-                conexao.close();
 
                 ctx.result("✅ Sucesso! O Falante " + marca + " " + modelo + " foi salvo no banco!");
             } catch (Exception e) {
                 ctx.result("❌ Erro ao salvar: " + e.getMessage());
             }
         });
+
+        // =========================================================
+        // ROTA 6: CRIAR NOVA CONTA
+        // =========================================================
+        app.post("/cadastrar-usuario", ctx -> {
+            String json = ctx.body();
+            try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD)) {
+                String nome = json.split("\"nome\":\"")[1].split("\"")[0];
+                String email = json.split("\"email\":\"")[1].split("\"")[0];
+                String senha = json.split("\"senha\":\"")[1].split("\"")[0]; 
+
+                String sql = "INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)";
+                PreparedStatement stmt = conn.prepareStatement(sql);
+                stmt.setString(1, nome);
+                stmt.setString(2, email);
+                stmt.setString(3, senha); 
+                stmt.executeUpdate();
+                
+                ctx.status(201).result("Usuário cadastrado com sucesso!");
+            } catch (Exception e) {
+                ctx.status(500).result("Erro ao cadastrar usuário: " + e.getMessage());
+            }
+        });
+
+        // =========================================================
+        // ROTA 7: FAZER LOGIN
+        // =========================================================
+        app.post("/login", ctx -> {
+            String json = ctx.body();
+            try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD)) {
+                String email = json.split("\"email\":\"")[1].split("\"")[0];
+                String senha = json.split("\"senha\":\"")[1].split("\"")[0];
+
+                String sql = "SELECT id, nome FROM usuarios WHERE email = ? AND senha = ?";
+                PreparedStatement stmt = conn.prepareStatement(sql);
+                stmt.setString(1, email);
+                stmt.setString(2, senha);
+                ResultSet rs = stmt.executeQuery();
+
+                if (rs.next()) {
+                    String resposta = "{\"id\": " + rs.getInt("id") + ", \"nome\": \"" + rs.getString("nome") + "\"}";
+                    ctx.status(200).result(resposta);
+                } else {
+                    ctx.status(401).result("Email ou senha incorretos.");
+                }
+            } catch (Exception e) {
+                ctx.status(500).result("Erro no login: " + e.getMessage());
+            }
+        });
+
+        // =========================================================
+        // ROTA 8: SALVAR PROJETO DO USUÁRIO NA NUVEM
+        // =========================================================
+        app.post("/salvar-projeto", ctx -> {
+            try (Connection conexao = DriverManager.getConnection(URL, USER, PASSWORD)) {
+                int usuarioId = Integer.parseInt(ctx.formParam("usuario_id"));
+                String nomeProjeto = ctx.formParam("nome_projeto");
+                String itens = ctx.formParam("itens"); // Vai receber uma lista tipo: "Modulo Taramps, Alto-Falante JBL"
+
+                String sql = "INSERT INTO projetos_salvos (usuario_id, nome_projeto, itens) VALUES (?, ?, ?)";
+                PreparedStatement cmd = conexao.prepareStatement(sql);
+                cmd.setInt(1, usuarioId);
+                cmd.setString(2, nomeProjeto);
+                cmd.setString(3, itens);
+                cmd.executeUpdate();
+
+                ctx.result("✅ Projeto salvo na sua conta com sucesso!");
+            } catch (Exception e) {
+                ctx.result("❌ Erro ao salvar projeto: " + e.getMessage());
+            }
+        });
+
+        // =========================================================
+        // ROTA 9: BUSCAR OS PROJETOS SALVOS DO USUÁRIO
+        // =========================================================
+        app.get("/meus-projetos", ctx -> {
+            String usuarioId = ctx.queryParam("usuario_id");
+            StringBuilder json = new StringBuilder("[");
+
+            try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD)) {
+                String sql = "SELECT id, nome_projeto, itens FROM projetos_salvos WHERE usuario_id = ? ORDER BY data_criacao DESC";
+                PreparedStatement stmt = conn.prepareStatement(sql);
+                stmt.setInt(1, Integer.parseInt(usuarioId));
+                ResultSet rs = stmt.executeQuery();
+
+                while (rs.next()) {
+                    json.append("{");
+                    json.append("\"id\":").append(rs.getInt("id")).append(",");
+                    json.append("\"nome_projeto\":\"").append(rs.getString("nome_projeto")).append("\",");
+                    json.append("\"itens\":\"").append(rs.getString("itens")).append("\"");
+                    json.append("},");
+                }
+                if (json.length() > 1) {
+                    json.setLength(json.length() - 1);
+                }
+                json.append("]");
+                ctx.contentType("application/json");
+                ctx.result(json.toString());
+            } catch (Exception e) {
+                ctx.result("[]");
+            }
+        });
+
     }
 }

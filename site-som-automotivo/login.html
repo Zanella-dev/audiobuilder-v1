@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AudioBuilder - Acesso</title>
+    <style>
+        /* Estilo Dark Mode Profissional */
+        body { 
+            background-color: #121212; 
+            color: #ffffff; 
+            font-family: Arial, sans-serif; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0; 
+        }
+        .login-container { 
+            background-color: #1e1e1e; 
+            padding: 40px 30px; 
+            border-radius: 10px; 
+            width: 100%; 
+            max-width: 400px; 
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5); 
+            box-sizing: border-box;
+        }
+        h2 { text-align: center; color: #ff4757; margin-bottom: 20px; }
+        
+        input { 
+            width: 100%; 
+            padding: 12px; 
+            margin: 10px 0; 
+            border: none; 
+            border-radius: 5px; 
+            background-color: #2f3542; 
+            color: white; 
+            box-sizing: border-box; 
+            font-size: 16px;
+        }
+        input:focus { outline: 2px solid #ff4757; }
+        
+        button { 
+            width: 100%; 
+            padding: 15px; 
+            background-color: #ff4757; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-size: 16px; 
+            font-weight: bold;
+            margin-top: 15px; 
+        }
+        button:hover { background-color: #ff6b81; }
+        
+        .toggle-link { 
+            text-align: center; 
+            margin-top: 20px; 
+            cursor: pointer; 
+            color: #7bed9f; 
+            text-decoration: underline; 
+            font-size: 14px;
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="login-container" id="box-login">
+        <h2>Entrar no AudioBuilder</h2>
+        <input type="email" id="login-email" placeholder="Seu E-mail">
+        <input type="password" id="login-senha" placeholder="Sua Senha">
+        <button onclick="fazerLogin()">Acessar Oficina</button>
+        <div class="toggle-link" onclick="alternarTelas()">Primeira vez aqui? Crie sua conta</div>
+    </div>
+
+    <div class="login-container hidden" id="box-cadastro">
+        <h2>Criar Nova Conta</h2>
+        <input type="text" id="cad-nome" placeholder="Seu Nome (ex: Kauã)">
+        <input type="email" id="cad-email" placeholder="Seu E-mail">
+        <input type="password" id="cad-senha" placeholder="Crie uma Senha">
+        <button onclick="cadastrar()">Cadastrar</button>
+        <div class="toggle-link" onclick="alternarTelas()">Já tem conta? Faça o login</div>
+    </div>
+
+    <script>
+        // Apontando para o seu Garçom local de testes
+        const URL_BASE = 'http://localhost:7070';
+
+        // Animação simples para trocar entre Login e Cadastro
+        function alternarTelas() {
+            document.getElementById('box-login').classList.toggle('hidden');
+            document.getElementById('box-cadastro').classList.toggle('hidden');
+        }
+
+        // Função de Cadastrar
+        async function cadastrar() {
+            const nome = document.getElementById('cad-nome').value;
+            const email = document.getElementById('cad-email').value;
+            const senha = document.getElementById('cad-senha').value;
+
+            if(!nome || !email || !senha) return alert("Preencha todos os campos da ficha!");
+
+            try {
+                const resposta = await fetch(URL_BASE + '/cadastrar-usuario', {
+                    method: 'POST',
+                    body: JSON.stringify({ nome, email, senha })
+                });
+
+                if(resposta.status === 201) {
+                    alert("Conta criada com sucesso! Agora é só fazer o login.");
+                    alternarTelas(); // Volta pra tela de login
+                } else {
+                    const erro = await resposta.text();
+                    alert("Ops: " + erro);
+                }
+            } catch (e) {
+                alert("Erro ao conectar com o servidor. O Java está ligado?");
+            }
+        }
+
+        // Função de Entrar
+        async function fazerLogin() {
+            const email = document.getElementById('login-email').value;
+            const senha = document.getElementById('login-senha').value;
+
+            if(!email || !senha) return alert("Preencha email e senha!");
+
+            try {
+                const resposta = await fetch(URL_BASE + '/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ email, senha })
+                });
+
+                if(resposta.status === 200) {
+                    // O Java devolveu os dados. Vamos ler e guardar no navegador!
+                    const dadosUsuario = await resposta.json();
+                    localStorage.setItem('usuarioLogado', JSON.stringify(dadosUsuario));
+                    
+                    alert("Bem-vindo de volta, " + dadosUsuario.nome + "!");
+                    window.location.href = 'index.html'; // Manda o cara pra vitrine
+                } else {
+                    alert("Email ou senha incorretos. Tente novamente.");
+                }
+            } catch (e) {
+                alert("Erro ao conectar com o servidor.");
+            }
+        }
+    </script>
+</body>
+</html>
