@@ -12,14 +12,14 @@
         input { width: 100%; padding: 12px; margin: 10px 0; border: none; border-radius: 5px; background-color: #2f3542; color: white; box-sizing: border-box; font-size: 16px; }
         input:focus { outline: 2px solid #ff4757; }
         
-        /* CSS NOVO: Preparando a caixinha do Olhinho */
+        /* Caixa do Olhinho */
         .senha-wrapper { position: relative; width: 100%; }
         .olho-icone { 
             position: absolute; right: 15px; top: 50%; transform: translateY(-50%); 
             cursor: pointer; font-size: 18px; user-select: none; opacity: 0.7; transition: 0.2s;
         }
         .olho-icone:hover { opacity: 1; }
-        input[type="password"], .senha-com-olho { padding-right: 45px; } /* Dá espaço pro texto não encostar no olho */
+        input[type="password"], input[type="text"] { padding-right: 45px; } /* Evita que a senha encoste no ícone */
 
         button { width: 100%; padding: 15px; background-color: #ff4757; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; margin-top: 15px; }
         button:hover { background-color: #ff6b81; }
@@ -35,8 +35,8 @@
         <input type="email" id="login-email" placeholder="Seu E-mail">
         
         <div class="senha-wrapper">
-            <input type="password" id="login-senha" class="senha-com-olho" placeholder="Sua Senha">
-            <span class="olho-icone" onclick="mostrarSenha('login-senha')">👁️</span>
+            <input type="password" id="login-senha" placeholder="Sua Senha">
+            <span class="olho-icone" id="icone-login" onclick="mostrarSenha('login-senha', 'icone-login')" title="Mostrar/Esconder Senha">👁️</span>
         </div>
 
         <button onclick="fazerLogin()">Acessar Oficina</button>
@@ -49,8 +49,8 @@
         <input type="email" id="cad-email" placeholder="Seu E-mail">
         
         <div class="senha-wrapper">
-            <input type="password" id="cad-senha" class="senha-com-olho" placeholder="Crie uma Senha">
-            <span class="olho-icone" onclick="mostrarSenha('cad-senha')">👁️</span>
+            <input type="password" id="cad-senha" placeholder="Crie uma Senha">
+            <span class="olho-icone" id="icone-cad" onclick="mostrarSenha('cad-senha', 'icone-cad')" title="Mostrar/Esconder Senha">👁️</span>
         </div>
 
         <button onclick="cadastrar()">Cadastrar</button>
@@ -58,31 +58,33 @@
     </div>
 
     <script>
-        // O link oficial da sua API no Render (Para funcionar no celular!)
         const URL_BASE = 'https://api-audiobuilder.onrender.com';
 
-        // Lógica para esconder/mostrar as telas
         function alternarTelas() {
             document.getElementById('box-login').classList.toggle('hidden');
             document.getElementById('box-cadastro').classList.toggle('hidden');
         }
 
-        // LÓGICA NOVA: O botão do olhinho!
-        function mostrarSenha(idDoInput) {
+        // ==========================================
+        // LÓGICA DO OLHINHO ATUALIZADA
+        // ==========================================
+        function mostrarSenha(idDoInput, idDoIcone) {
             const inputSenha = document.getElementById(idDoInput);
+            const icone = document.getElementById(idDoIcone);
+            
             if (inputSenha.type === 'password') {
                 inputSenha.type = 'text'; // Mostra o texto
+                icone.innerText = '🙈';   // Troca o ícone para "Esconder"
             } else {
-                inputSenha.type = 'password'; // Esconde de novo
+                inputSenha.type = 'password'; // Esconde o texto
+                icone.innerText = '👁️';   // Volta o ícone para "Mostrar"
             }
         }
 
-        // Função de Cadastrar
         async function cadastrar() {
-            // O .trim() nas pontas tira os espaços fantasmas do celular!
             const nome = document.getElementById('cad-nome').value.trim();
             const email = document.getElementById('cad-email').value.trim();
-            const senha = document.getElementById('cad-senha').value; // Senha não usamos trim, pois espaço pode ser parte da senha
+            const senha = document.getElementById('cad-senha').value;
 
             if(!nome || !email || !senha) return alert("Preencha todos os campos da ficha!");
             if(senha.includes('"')) return alert("Por segurança, a senha não pode conter aspas duplas.");
@@ -105,9 +107,7 @@
             }
         }
 
-        // Função de Entrar
         async function fazerLogin() {
-            // .trim() salvando o dia novamente
             const email = document.getElementById('login-email').value.trim();
             const senha = document.getElementById('login-senha').value;
 
