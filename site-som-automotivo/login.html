@@ -5,63 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AudioBuilder - Acesso</title>
     <style>
-        /* Estilo Dark Mode Profissional */
-        body { 
-            background-color: #121212; 
-            color: #ffffff; 
-            font-family: Arial, sans-serif; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-            margin: 0; 
-        }
-        .login-container { 
-            background-color: #1e1e1e; 
-            padding: 40px 30px; 
-            border-radius: 10px; 
-            width: 100%; 
-            max-width: 400px; 
-            box-shadow: 0 8px 20px rgba(0,0,0,0.5); 
-            box-sizing: border-box;
-        }
+        body { background-color: #121212; color: #ffffff; font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-container { background-color: #1e1e1e; padding: 40px 30px; border-radius: 10px; width: 100%; max-width: 400px; box-shadow: 0 8px 20px rgba(0,0,0,0.5); box-sizing: border-box; }
         h2 { text-align: center; color: #ff4757; margin-bottom: 20px; }
         
-        input { 
-            width: 100%; 
-            padding: 12px; 
-            margin: 10px 0; 
-            border: none; 
-            border-radius: 5px; 
-            background-color: #2f3542; 
-            color: white; 
-            box-sizing: border-box; 
-            font-size: 16px;
-        }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: none; border-radius: 5px; background-color: #2f3542; color: white; box-sizing: border-box; font-size: 16px; }
         input:focus { outline: 2px solid #ff4757; }
         
-        button { 
-            width: 100%; 
-            padding: 15px; 
-            background-color: #ff4757; 
-            color: white; 
-            border: none; 
-            border-radius: 5px; 
-            cursor: pointer; 
-            font-size: 16px; 
-            font-weight: bold;
-            margin-top: 15px; 
+        /* CSS NOVO: Preparando a caixinha do Olhinho */
+        .senha-wrapper { position: relative; width: 100%; }
+        .olho-icone { 
+            position: absolute; right: 15px; top: 50%; transform: translateY(-50%); 
+            cursor: pointer; font-size: 18px; user-select: none; opacity: 0.7; transition: 0.2s;
         }
+        .olho-icone:hover { opacity: 1; }
+        input[type="password"], .senha-com-olho { padding-right: 45px; } /* Dá espaço pro texto não encostar no olho */
+
+        button { width: 100%; padding: 15px; background-color: #ff4757; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; margin-top: 15px; }
         button:hover { background-color: #ff6b81; }
         
-        .toggle-link { 
-            text-align: center; 
-            margin-top: 20px; 
-            cursor: pointer; 
-            color: #7bed9f; 
-            text-decoration: underline; 
-            font-size: 14px;
-        }
+        .toggle-link { text-align: center; margin-top: 20px; cursor: pointer; color: #7bed9f; text-decoration: underline; font-size: 14px; }
         .hidden { display: none; }
     </style>
 </head>
@@ -70,7 +33,12 @@
     <div class="login-container" id="box-login">
         <h2>Entrar no AudioBuilder</h2>
         <input type="email" id="login-email" placeholder="Seu E-mail">
-        <input type="password" id="login-senha" placeholder="Sua Senha">
+        
+        <div class="senha-wrapper">
+            <input type="password" id="login-senha" class="senha-com-olho" placeholder="Sua Senha">
+            <span class="olho-icone" onclick="mostrarSenha('login-senha')">👁️</span>
+        </div>
+
         <button onclick="fazerLogin()">Acessar Oficina</button>
         <div class="toggle-link" onclick="alternarTelas()">Primeira vez aqui? Crie sua conta</div>
     </div>
@@ -79,28 +47,45 @@
         <h2>Criar Nova Conta</h2>
         <input type="text" id="cad-nome" placeholder="Seu Nome (ex: Kauã)">
         <input type="email" id="cad-email" placeholder="Seu E-mail">
-        <input type="password" id="cad-senha" placeholder="Crie uma Senha">
+        
+        <div class="senha-wrapper">
+            <input type="password" id="cad-senha" class="senha-com-olho" placeholder="Crie uma Senha">
+            <span class="olho-icone" onclick="mostrarSenha('cad-senha')">👁️</span>
+        </div>
+
         <button onclick="cadastrar()">Cadastrar</button>
         <div class="toggle-link" onclick="alternarTelas()">Já tem conta? Faça o login</div>
     </div>
 
     <script>
-        // Apontando para o seu Garçom local de testes
+        // O link oficial da sua API no Render (Para funcionar no celular!)
         const URL_BASE = 'https://api-audiobuilder.onrender.com';
 
-        // Animação simples para trocar entre Login e Cadastro
+        // Lógica para esconder/mostrar as telas
         function alternarTelas() {
             document.getElementById('box-login').classList.toggle('hidden');
             document.getElementById('box-cadastro').classList.toggle('hidden');
         }
 
+        // LÓGICA NOVA: O botão do olhinho!
+        function mostrarSenha(idDoInput) {
+            const inputSenha = document.getElementById(idDoInput);
+            if (inputSenha.type === 'password') {
+                inputSenha.type = 'text'; // Mostra o texto
+            } else {
+                inputSenha.type = 'password'; // Esconde de novo
+            }
+        }
+
         // Função de Cadastrar
         async function cadastrar() {
-            const nome = document.getElementById('cad-nome').value;
-            const email = document.getElementById('cad-email').value;
-            const senha = document.getElementById('cad-senha').value;
+            // O .trim() nas pontas tira os espaços fantasmas do celular!
+            const nome = document.getElementById('cad-nome').value.trim();
+            const email = document.getElementById('cad-email').value.trim();
+            const senha = document.getElementById('cad-senha').value; // Senha não usamos trim, pois espaço pode ser parte da senha
 
             if(!nome || !email || !senha) return alert("Preencha todos os campos da ficha!");
+            if(senha.includes('"')) return alert("Por segurança, a senha não pode conter aspas duplas.");
 
             try {
                 const resposta = await fetch(URL_BASE + '/cadastrar-usuario', {
@@ -110,19 +95,20 @@
 
                 if(resposta.status === 201) {
                     alert("Conta criada com sucesso! Agora é só fazer o login.");
-                    alternarTelas(); // Volta pra tela de login
+                    alternarTelas();
                 } else {
                     const erro = await resposta.text();
                     alert("Ops: " + erro);
                 }
             } catch (e) {
-                alert("Erro ao conectar com o servidor. O Java está ligado?");
+                alert("Erro ao conectar com o servidor.");
             }
         }
 
         // Função de Entrar
         async function fazerLogin() {
-            const email = document.getElementById('login-email').value;
+            // .trim() salvando o dia novamente
+            const email = document.getElementById('login-email').value.trim();
             const senha = document.getElementById('login-senha').value;
 
             if(!email || !senha) return alert("Preencha email e senha!");
@@ -134,12 +120,11 @@
                 });
 
                 if(resposta.status === 200) {
-                    // O Java devolveu os dados. Vamos ler e guardar no navegador!
                     const dadosUsuario = await resposta.json();
                     localStorage.setItem('usuarioLogado', JSON.stringify(dadosUsuario));
                     
                     alert("Bem-vindo de volta, " + dadosUsuario.nome + "!");
-                    window.location.href = 'index.html'; // Manda o cara pra vitrine
+                    window.location.href = 'index.html'; 
                 } else {
                     alert("Email ou senha incorretos. Tente novamente.");
                 }
