@@ -14,8 +14,13 @@
         .container { display: flex; max-width: 1300px; margin: 30px auto; gap: 30px; padding: 0 20px; }
         
         .marketplace-area { flex: 2; }
-        .barra-pesquisa { width: 100%; padding: 15px; border: 1px solid #444; border-radius: 8px; font-size: 16px; margin-bottom: 20px; box-sizing: border-box; background-color: #2c2c2c; color: #fff; }
+        .barra-pesquisa { width: 100%; padding: 15px; border: 1px solid #444; border-radius: 8px; font-size: 16px; margin-bottom: 15px; box-sizing: border-box; background-color: #2c2c2c; color: #fff; }
         
+        /* CSS NOVO: Botões de Filtro */
+        .area-filtros { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
+        .tag-filtro { background-color: #333; color: #fff; border: 1px solid #555; padding: 8px 15px; border-radius: 20px; cursor: pointer; font-size: 14px; white-space: nowrap; transition: 0.2s; }
+        .tag-filtro:hover, .tag-filtro.ativo { background-color: #e94560; border-color: #e94560; font-weight: bold; }
+
         .grid-produtos { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
         .produto-card { background: #1f1f1f; border: 1px solid #333; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); text-align: center; transition: all 0.2s; }
         .produto-card:hover { transform: translateY(-5px); border-color: #e94560; }
@@ -30,14 +35,12 @@
         .carrinho-box h2 { color: #fff; margin-top: 0; }
         
         #lista-carrinho { list-style-type: none; padding: 0; margin: 0; }
-        
         .item-carrinho { background: #2c2c2c; margin-bottom: 8px; padding: 12px; border-left: 4px solid #e94560; border-radius: 4px; font-size: 14px; color: #e0e0e0; display: flex; justify-content: space-between; align-items: center; }
         .btn-lixeira { background: transparent; border: none; color: #e74c3c; cursor: pointer; font-size: 16px; padding: 0 5px; transition: 0.2s; }
         .btn-lixeira:hover { transform: scale(1.2); }
         
         .btn-calcular { background-color: #e94560; color: white; border: none; width: 100%; margin-top: 20px; padding: 15px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: background 0.3s; }
         .btn-calcular:hover { background-color: #d13d56; }
-        
         .btn-limpar { background-color: #444; color: white; border: none; width: 100%; margin-top: 10px; padding: 10px; font-size: 14px; border-radius: 8px; cursor: pointer; transition: background 0.3s; }
         .btn-limpar:hover { background-color: #666; }
 
@@ -71,9 +74,16 @@
 
     <div class="container">
         <div class="marketplace-area">
-            <input type="text" class="barra-pesquisa" placeholder="🔍 Pesquisar módulos, alto-falantes, marcas...">
+            <input type="text" id="campo-pesquisa" class="barra-pesquisa" placeholder="🔍 Pesquisar módulos, alto-falantes, marcas..." onkeyup="filtrarProdutos()">
+            
+            <div class="area-filtros">
+                <button class="tag-filtro ativo" onclick="filtrarCategoria('Todos', this)">Todos</button>
+                <button class="tag-filtro" onclick="filtrarCategoria('Modulo', this)">Módulos</button>
+                <button class="tag-filtro" onclick="filtrarCategoria('Falante', this)">Alto-Falantes</button>
+            </div>
+
             <div class="grid-produtos" id="vitrine">
-                <p>Carregando estoque...</p>
+                <p>Conectando ao banco de dados...</p>
             </div>
         </div>
 
@@ -84,7 +94,7 @@
                 <ul id="lista-carrinho"></ul>
                 
                 <div id="area-salvar" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px dashed #555;">
-                    <input type="text" id="nome-projeto" class="barra-pesquisa" style="margin-bottom: 10px; padding: 10px; font-size: 14px;" placeholder="Nome do Projeto (ex: Silverado Black Edition)">
+                    <input type="text" id="nome-projeto" class="barra-pesquisa" style="margin-bottom: 10px; padding: 10px; font-size: 14px;" placeholder="Nome do Projeto (ex: F-100 Cabine)">
                     <button class="btn-calcular" style="background-color: #2980b9; margin-top: 0;" onclick="salvarProjeto()">💾 Salvar na Nuvem</button>
                 </div>
 
@@ -129,31 +139,79 @@
             carregarEstoque();
         });
         
+        // ==========================================
+        // NOVO: SISTEMA DE ESTOQUE E FILTROS
+        // ==========================================
+        let estoqueCompleto = []; // A memória do nosso navegador
+        let categoriaAtual = 'Todos';
+
         function carregarEstoque() {
             fetch('https://api-audiobuilder.onrender.com/produtos')
             .then(resposta => resposta.json())
             .then(produtos => {
-                const vitrine = document.getElementById('vitrine');
-                vitrine.innerHTML = ''; 
-
-                produtos.forEach(produto => {
-                    let tipoImp = produto.tipo === 'Modulo' ? 'Imp. Mínima' : 'Imp. Nominal';
-                    
-                    const card = document.createElement('div');
-                    card.className = 'produto-card';
-                    card.innerHTML = `
-                        <h3>${produto.nome}</h3>
-                        <p>Potência: ${produto.potencia}W RMS<br>${tipoImp}: ${produto.impedancia} Ohms</p>
-                        <button class="btn-add" onclick="adicionarItem('${produto.nome}')">+ Carrinho</button>
-                    `;
-                    vitrine.appendChild(card); 
-                });
+                estoqueCompleto = produtos; // Guarda os produtos na memória!
+                renderizarVitrine(estoqueCompleto); // Desenha a tela
             })
             .catch(erro => {
-                document.getElementById('vitrine').innerHTML = '<p style="color:red;">Erro ao carregar os produtos do servidor.</p>';
+                document.getElementById('vitrine').innerHTML = '<p style="color:#ff4757;">Servidor acordando... Atualize a página em instantes.</p>';
             });
         }
 
+        // Função que desenha os cards na tela
+        function renderizarVitrine(listaDeProdutos) {
+            const vitrine = document.getElementById('vitrine');
+            vitrine.innerHTML = ''; 
+
+            if(listaDeProdutos.length === 0) {
+                vitrine.innerHTML = '<p style="color: #aaa;">Nenhum produto encontrado.</p>';
+                return;
+            }
+
+            listaDeProdutos.forEach(produto => {
+                let tipoImp = produto.tipo === 'Modulo' ? 'Imp. Mínima' : 'Imp. Nominal';
+                
+                const card = document.createElement('div');
+                card.className = 'produto-card';
+                card.innerHTML = `
+                    <h3>${produto.nome}</h3>
+                    <p>Potência: ${produto.potencia}W RMS<br>${tipoImp}: ${produto.impedancia} Ohms</p>
+                    <button class="btn-add" onclick="adicionarItem('${produto.nome}')">+ Carrinho</button>
+                `;
+                vitrine.appendChild(card); 
+            });
+        }
+
+        // Função do Botão de Categoria (Tags)
+        function filtrarCategoria(categoria, botaoClicado) {
+            categoriaAtual = categoria;
+            
+            // Muda a cor do botão ativo
+            document.querySelectorAll('.tag-filtro').forEach(btn => btn.classList.remove('ativo'));
+            botaoClicado.classList.add('ativo');
+
+            filtrarProdutos(); // Chama o filtro central
+        }
+
+        // Função da Barra de Pesquisa + Categoria juntos
+        function filtrarProdutos() {
+            const textoPesquisa = document.getElementById('campo-pesquisa').value.toLowerCase();
+            
+            const produtosFiltrados = estoqueCompleto.filter(produto => {
+                // 1. Verifica se bate com a categoria escolhida
+                const bateCategoria = (categoriaAtual === 'Todos' || produto.tipo === categoriaAtual);
+                
+                // 2. Verifica se o texto digitado existe no nome do produto
+                const bateTexto = produto.nome.toLowerCase().includes(textoPesquisa);
+
+                return bateCategoria && bateTexto;
+            });
+
+            renderizarVitrine(produtosFiltrados);
+        }
+
+        // ==========================================
+        // RESTANTE DO CÓDIGO (Carrinho e Engenharia)
+        // ==========================================
         let carrinhoDeCompras = [];
 
         function adicionarItem(nomeDoProduto) {
@@ -175,46 +233,31 @@
         function atualizarTela() {
             let listaHtml = document.getElementById('lista-carrinho');
             let avisoVazio = document.getElementById('carrinho-vazio');
-            let areaSalvar = document.getElementById('area-salvar'); // Pega a nova área
+            let areaSalvar = document.getElementById('area-salvar'); 
             
             listaHtml.innerHTML = '';
 
             if (carrinhoDeCompras.length > 0) {
                 avisoVazio.style.display = 'none';
-                areaSalvar.style.display = 'block'; // Mostra o botão de salvar se tiver item!
+                areaSalvar.style.display = 'block'; 
             } else {
                 avisoVazio.style.display = 'block';
-                areaSalvar.style.display = 'none'; // Esconde o botão se o carrinho esvaziar
+                areaSalvar.style.display = 'none'; 
             }
 
             for (let i = 0; i < carrinhoDeCompras.length; i++) {
                 let novoItemHtml = document.createElement('li');
                 novoItemHtml.className = 'item-carrinho';
-                
-                novoItemHtml.innerHTML = `
-                    <span>${carrinhoDeCompras[i]}</span>
-                    <button class="btn-lixeira" onclick="removerItem(${i})" title="Remover item">✖</button>
-                `;
-                
+                novoItemHtml.innerHTML = `<span>${carrinhoDeCompras[i]}</span><button class="btn-lixeira" onclick="removerItem(${i})" title="Remover item">✖</button>`;
                 listaHtml.appendChild(novoItemHtml);
             }
         }
 
-        // ==========================================
-        // NOVA FUNÇÃO: SALVAR PROJETO NA NUVEM
-        // ==========================================
         function salvarProjeto() {
             const nomeProjeto = document.getElementById('nome-projeto').value;
-            
-            if (!nomeProjeto) {
-                alert("Por favor, digite um nome para o seu projeto!");
-                return;
-            }
+            if (!nomeProjeto) return alert("Por favor, digite um nome para o seu projeto!");
 
-            // Junta todos os itens do carrinho em um texto só (ex: "Modulo X, Falante Y")
             const itensString = carrinhoDeCompras.join(", "); 
-            
-            // Empacota os dados para mandar pro Java (formato Formulário)
             const dadosForm = new URLSearchParams();
             dadosForm.append("usuario_id", usuario.id);
             dadosForm.append("nome_projeto", nomeProjeto);
@@ -226,22 +269,16 @@
             })
             .then(resposta => resposta.text())
             .then(texto => {
-                alert(texto); // Mostra a mensagem de sucesso do Java!
-                document.getElementById('nome-projeto').value = ''; // Limpa o campo
+                alert(texto); 
+                document.getElementById('nome-projeto').value = ''; 
             })
-            .catch(erro => {
-                alert("Erro de conexão ao tentar salvar o projeto.");
-            });
+            .catch(erro => alert("Erro de conexão ao tentar salvar o projeto."));
         }
 
         function processarEngenharia() {
-            if (carrinhoDeCompras.length === 0) {
-                alert("Adicione algum produto no carrinho primeiro!");
-                return; 
-            }
+            if (carrinhoDeCompras.length === 0) return alert("Adicione algum produto no carrinho primeiro!");
 
             let dadosParaEnvio = JSON.stringify(carrinhoDeCompras);
-            
             document.getElementById('painel-resultado').style.display = 'block';
             document.getElementById('texto-relatorio').innerText = "⏳ Conectando aos servidores de engenharia...";
             document.getElementById('texto-relatorio').style.color = '#ff9800'; 
